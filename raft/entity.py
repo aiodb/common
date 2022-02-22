@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Date : 2022/2/21
-from typing import Dict, List, Any
+from collections import namedtuple
+from typing import Dict, Any
 
 from pydantic import BaseModel
-from collections import namedtuple
 
 Address = namedtuple('Address', ['host', 'port'])
 
@@ -16,10 +16,15 @@ class OrchestratorConfig(BaseModel):
     participants: Dict[str, Address] = {}
 
 
+class VoteDetail(BaseModel):
+    vote_for: str
+    term: int
+
+
 class NodeMeta(BaseModel):
     name: str
-    last_term: int
-    last_op_id: int
+    term: int
+    op_id: int
 
 
 class Message(BaseModel):
@@ -34,3 +39,7 @@ class HeartBeatMessage(Message):
 
 class Oplog(Message):
     data_type = 'oplog'
+
+
+class ElectionMessage(Message):
+    data_type = 'election'
