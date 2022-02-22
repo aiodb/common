@@ -43,3 +43,7 @@ class Oplog(Message):
 
 class ElectionMessage(Message):
     data_type = 'election'
+
+
+class ElectionResponseMessage(Message):
+    data_type = 'election_response'

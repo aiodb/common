@@ -3,7 +3,7 @@
 # @Date : 2022/2/21
 from random import randint
 
-from entity import Message
+from entity import Message, ElectionMessage, NodeMeta
 from asyncio import get_event_loop
 
 
@@ -61,16 +61,32 @@ class Follower(State):
         """
         self.restart_election_timer()
 
+    def tear_down(self):
+        """
+        things to do while leaving state of follower
+        :return:
+        """
+        self.cancel_election_timer()
+
     def restart_election_timer(self):
         """
         try to become a candidate
         """
         if hasattr(self, 'election_timer') and self.election_timer:
-            self.election_timer.cancle()
+            self.election_timer.cancel()
 
         loop = get_event_loop()
         random_delay = randint(10, 20)
         self.election_timer = loop.call_later(random_delay, self.orchestrator.change_state, Candidate)
+
+    def cancel_election_timer(self):
+        """
+        try to cancel election timer
+        :return:
+        """
+        if hasattr(self, 'election_timer') and self.election_timer:
+            print('current election time cancelled')
+            self.election_timer.cancel()
 
     @classmethod
     def process_heart_beat_message(cls, message: Message):
@@ -86,7 +102,14 @@ class Follower(State):
 
 
 class Candidate(Follower):
-    pass
+
+    def setup(self):
+        pass
+
+    def request_for_vote(self):
+        request_vote_message = ElectionMessage(data_body={},
+                                               meta_info=NodeMeta(name=self.orchestrator.name, term=self.term,
+                                                                  op_id=self.op_id))
 
 
 class Leader(State):

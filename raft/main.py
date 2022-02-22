@@ -17,7 +17,7 @@ def setup(conf: str, node_name: str) -> Orchestrator:
 
 @click.command()
 @click.option("--conf", '-f', type=str, default='./config.yaml', help="config path", required=True)
-@click.option("--node", type=str, required=True)
+@click.option("--node", type=str, default='node1', required=True)
 def main(conf: str, node: str):
     orchestrator = setup(conf, node)
     orchestrator.run()
