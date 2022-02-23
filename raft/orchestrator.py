@@ -43,6 +43,10 @@ class Orchestrator:
         loop.call_later(2, self.make_connection_with_peer)
 
     def make_connection_with_peer(self):
+        asyncio.ensure_future(self.connect_with_peer())
+        self.check_and_make_connection_with_peer()
+
+    async def connect_with_peer(self):
         loop = get_event_loop()
         for node_name, address in self.participants.items():
             if node_name == self.name:
@@ -51,12 +55,9 @@ class Orchestrator:
                 print(self.internal_transport_mapper)
                 try:
                     protocol_factory = partial(InternalProtocol, self, node_name)
-                    make_connection = loop.create_connection(protocol_factory, address.host, address.port)
-                    asyncio.ensure_future(make_connection)
+                    await loop.create_connection(protocol_factory, address.host, address.port)
                 except Exception as e:
-                    print(e)
-
-        self.check_and_make_connection_with_peer()
+                    print(f'can not connect with {node_name}-{address.host}:{address.port}')
 
     def process_received_client_data(self, message):
         """
@@ -80,7 +81,8 @@ class Orchestrator:
     def send_message_to_target_node(self, node_name: str, message: Message):
         transport = self.internal_transport_mapper.get(node_name)
         if not transport:
-            pass
+            print(f'can not connect with {node_name}')
+            return
         print(f'send message: {message} to node: {node_name}')
         transport.write(str.encode(dumps(message.dict())))
 
