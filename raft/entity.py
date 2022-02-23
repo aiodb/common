@@ -47,3 +47,13 @@ class ElectionMessage(Message):
 
 class ElectionResponseMessage(Message):
     data_type = 'election_response'
+
+
+def select_target_message_type(data_type: str):
+    type_mapper = {
+        'heart_beat': HeartBeatMessage,
+        'oplog': Oplog,
+        'election': ElectionMessage,
+        'election_response': ElectionResponseMessage
+    }
+    return type_mapper.get(data_type)

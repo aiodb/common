@@ -5,7 +5,7 @@ import asyncio
 import os
 from functools import partial
 
-from entity import OrchestratorConfig, Message
+from entity import OrchestratorConfig, Message, select_target_message_type
 from asyncio import Protocol, get_event_loop
 from json import dumps, loads
 
@@ -62,7 +62,14 @@ class Orchestrator:
         """
         process data received from clients
         """
-        pass
+        message_type = message.get('data_type')
+        target_message_type = select_target_message_type(message_type)
+        if not target_message_type:
+            print(f'message type:{message_type} is not supported yet')
+            return
+        message = target_message_type(**message)
+        process_func = getattr(self.state, f'process_{message_type}_message')
+        process_func(message)
 
     def process_received_peer_data(self, message):
         """
@@ -74,7 +81,8 @@ class Orchestrator:
         transport = self.internal_transport_mapper.get(node_name)
         if not transport:
             pass
-        transport.write(dumps(message.dict()))
+        print(f'send message: {message} to node: {node_name}')
+        transport.write(str.encode(dumps(message.dict())))
 
     def broadcast_message(self, message: Message):
         """
@@ -97,16 +105,18 @@ class OrchestratorProtocol(Protocol):
         self.transport = transport
 
     def data_received(self, data):
+        data = data.decode()
+        print(data)
         message = loads(data, encoding='utf-8')
         print('data received from clients')
-        self.orchestrator.process_received_client_data(self, message)
+        self.orchestrator.process_received_client_data(message)
 
     def connection_lost(self, exc):
         print('Closed connection with client %s:%s',
               *self.transport.get_extra_info('peername'))
 
     def send(self, message):
-        self.transport.write(dumps(message))
+        self.transport.write(str.encode(dumps(message)))
         self.transport.close()
 
 
@@ -121,6 +131,7 @@ class InternalProtocol(Protocol):
         self.transport = transport
 
     def data_received(self, data):
+        data = data.decode()
         message = loads(data, encoding='utf-8')
         self.orchestrator.process_received_peer_data(message)
 
@@ -129,5 +140,5 @@ class InternalProtocol(Protocol):
         self.orchestrator.internal_transport_mapper.pop(self.node_name, None)
 
     def send(self, message):
-        self.transport.write(dumps(message))
+        self.transport.write(str.encode(dumps(message)))
         self.transport.close()
